@@ -18,13 +18,16 @@ def record_procfs_io(client: udp_client.SimpleUDPClient, pids: [int], interval_m
             syscalls_write = stats[3]
             bytes_read = stats[0]
             bytes_write = stats[1]
-            storage_bytes = stats[4] + stats[5]
+            storage_read = stats[4]
+            storage_write = stats[5]
 
             if syscalls_read:
                 client.send_message("/io/syscalls/read", [syscalls_read, bytes_read])
             if syscalls_write:
                 client.send_message("/io/syscalls/write", [syscalls_write, bytes_write])
-            if storage_bytes:
-                client.send_message("/io/storage_bytes", storage_bytes)
+            if storage_read:
+                client.send_message("/io/storage/read", [1, storage_read])
+            if storage_write:
+                client.send_message("/io/storage/write", [1, storage_write])
 
     print("procfs_io ended", file=sys.stderr)

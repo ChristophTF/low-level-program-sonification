@@ -1,3 +1,6 @@
+import math
+import sys
+
 from pythonosc import udp_client
 import subprocess
 import matplotlib
@@ -40,7 +43,8 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
         return
 
     cmdline = f'perf stat --no-group --metric-no-group -e {(",".join(events))} -I {interval_ms} -x\\; --pid {",".join([str(p) for p in pids])}'
-    with subprocess.Popen(cmdline, shell=True, stderr=subprocess.PIPE, pipesize=1048576, text=True) as p:
+    # LANG=en_US is needed for having dots as the decimal separator
+    with subprocess.Popen(cmdline, shell=True, stderr=subprocess.PIPE, pipesize=1048576, text=True, env={ "LANG": "en_US"}) as p:
         eventdata = [{ 't': [], 'density': [], 'delta_t': [] } for _ in events]
 
         granularity = -1
@@ -52,6 +56,7 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
 
         try:
             while not p.stderr.closed:
+                index = 0
                 for lines in eventdata:
                     line = p.stderr.readline()
                     if len(line) == 0:
@@ -60,18 +65,28 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
                     timestamp = float(columns[0])
                     last_timestamp = lines['t'][-1] if len(lines['t']) > 0 else 0
                     lines['t'].append(timestamp)
-                    count = float(columns[1].replace(",", ".")) if columns[1] != "<not counted>" else 0
+
+                    count = float(columns[1]) if columns[1] != "<not counted>" else 0
+                    unit = columns[2]
+                    eventname = columns[3]
+                    if not events[index].startswith(eventname):
+                        raise ValueError()
+                    multiplex_percent = float(columns[5])
+
                     delta_t = timestamp - last_timestamp
                     lines['delta_t'].append(delta_t)
-                    count_density = count / delta_t
+                    count_density = count / delta_t if multiplex_percent != 0 else math.nan
                     lines['density'].append(count_density)
+                    index += 1
 
                 utilization = eventdata[0]['density'][-1] / 1000
                 cycles = eventdata[1]['density'][-1]
                 instructions = eventdata[2]['density'][-1]
 
                 client.send_message("/task-clock", utilization)
-                client.send_message("/IPC", [cycles, instructions])
+
+                if not (math.isnan(cycles) or math.isnan(instructions)):
+                    client.send_message("/IPC", [cycles, instructions])
 
                 for name, eventindex in [("L1D", 3), ("L2", 4), ("L3", 5), ("L1I", 8)]:
                     misses_rel = 0 if instructions == 0 else eventdata[eventindex]['density'][-1]/instructions

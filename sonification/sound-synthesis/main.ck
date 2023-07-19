@@ -1,20 +1,7 @@
-UGen out => dac => WvOut waveOut => blackhole;
-UGen rel_out => UGen volume_bridge => out;
-3 => volume_bridge.op; // Multiply
-Step overall_volume => LPF overall_volume_lpf => volume_bridge;
-0 => overall_volume.next;
-overall_volume_lpf => WvOut volumeWv => blackhole;
-"volume.wav" => volumeWv.wavFilename;
-100 => overall_volume_lpf.freq;
-0.1 => overall_volume_lpf.Q;
-
-//out => NRev reverb => dac;
-//0.1 => reverb.mix;
-"out.wav" => waveOut.wavFilename;
-
-9000 => int PORT;
-
-
+UGen out => dac;
+UGen rel_out => Envelope volume_bridge => out;
+5::ms => volume_bridge.duration;
+0.1 => out.gain;
 
 SpinningOsc3 ipcSpinner => TriOsc ipcOsc => rel_out;
 2 => ipcOsc.sync; // FM
@@ -32,7 +19,7 @@ fun void sonifyCacheMisses(string address, float frequency)
     OscIn oscIn;
     OscMsg oscMsg;
 
-    PORT => oscIn.port;
+    OscAddress.PORT() => oscIn.port;
     oscIn.addAddress(address);
 
     while(true)
@@ -52,7 +39,7 @@ fun void sonifyTaskClock()
 {
     OscIn oscIn;
     OscMsg oscMsg;
-    PORT => oscIn.port;
+    OscAddress.PORT() => oscIn.port;
     oscIn.addAddress("/task-clock");
 
     while(true)
@@ -62,7 +49,7 @@ fun void sonifyTaskClock()
         {
             oscMsg.getFloat(0) => float utilization;
             // <<< "Utilization:", utilization >>>;
-            utilization => overall_volume.next;
+            utilization => volume_bridge.target;
         }
     }
 }
@@ -86,7 +73,7 @@ fun void sonifyIPC()
 {
     OscIn oscIn;
     OscMsg oscMsg;
-    PORT => oscIn.port;
+    OscAddress.PORT() => oscIn.port;
     oscIn.addAddress("/IPC");
 
     spork ~ refreshSpinnerFrequency();
@@ -107,7 +94,7 @@ fun void sonifyIPC()
             {
                 frequency => spinnerBaseFreqEnv.target;
                 // ipcSpinner.baseFreq;
-                // <<< "IPC:", IPC, "frequency: ", frequency >>>;
+                <<< "IPC:", IPC, "frequency: ", frequency >>>;
             }
         }
     }
@@ -117,7 +104,7 @@ fun void sonifyL1ICacheMisses()
 {
     OscIn oscIn;
     OscMsg oscMsg;
-    PORT => oscIn.port;
+    OscAddress.PORT() => oscIn.port;
     oscIn.addAddress("/cache/L1I/misses");
 
     1 => ipcSpinner.randomGain;
@@ -128,52 +115,13 @@ fun void sonifyL1ICacheMisses()
         while(oscIn.recv(oscMsg) != 0)
         {
             oscMsg.getFloat(0) => float misses;
-            misses * 10000 => float randomGain;
+            misses * 3000 => float randomGain;
             // <<< "randomGain:", randomGain >>>;
             randomGain => ipcSpinner.randomGain;
         }
     }
 }
 
-fun void sonifyIoSyscalls(string address, float frequency)
-{
-    SinOsc osc => ADSR env => Gain gain => out;
-    frequency => osc.freq;
-    (1::ms, 5::ms, 0, 1::ms) => env.set;
-
-    OscIn oscIn;
-    OscMsg oscMsg;
-
-    PORT => oscIn.port;
-    oscIn.addAddress(address);
-
-    while(true)
-    {
-        oscIn => now;
-        while(oscIn.recv(oscMsg) != 0)
-        {
-            oscMsg.getInt(0) => int syscalls;
-
-            if (syscalls > 0)
-            {
-                float loudness;
-                100 => int MAX_SYSCALLS;
-                if (syscalls > MAX_SYSCALLS)
-                {
-                    1 => loudness;
-                }
-                else
-                {
-                    syscalls => float syscalls_float;
-                    syscalls_float / MAX_SYSCALLS => loudness;
-                }
-
-                Math.sqrt(loudness) => gain.gain;
-                1 => env.keyOn;
-            }
-        }
-    }
-}
 
 spork ~ sonifyCacheMisses("/cache/L3/misses", Std.mtof(48));
 spork ~ sonifyCacheMisses("/cache/L2/misses", Std.mtof(52));
@@ -182,8 +130,5 @@ spork ~ sonifyCacheMisses("/cache/L1D/misses", Std.mtof(55));
 spork ~ sonifyTaskClock();
 spork ~ sonifyIPC();
 spork ~ sonifyL1ICacheMisses();
-
-spork ~ sonifyIoSyscalls("/io/syscalls/read", 4400);
-spork ~ sonifyIoSyscalls("/io/syscalls/write", 3200);
 
 1::week => now;

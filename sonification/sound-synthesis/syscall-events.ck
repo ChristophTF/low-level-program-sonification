@@ -1,5 +1,3 @@
-9000 => int PORT;
-
 fun void hitADSR(ADSR adsr, dur sustainT)
 {
     1 => adsr.keyOn;
@@ -27,7 +25,7 @@ fun void sonifySyscalls(string address, float frequency)
     OscIn oscIn;
     OscMsg oscMsg;
 
-    PORT => oscIn.port;
+    OscAddress.PORT() => oscIn.port;
     oscIn.addAddress(address);
 
     0 => int index;

@@ -12,7 +12,7 @@ Envelope volume_bridge;
 rel_out => volume_bridge;
 volume_bridge => out => dac;
 
-5::ms => volume_bridge.duration;
+10::ms => volume_bridge.duration;
 0.1 => out.gain;
 
 fun void sonifyTaskClock()

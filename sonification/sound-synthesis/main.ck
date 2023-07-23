@@ -1,10 +1,13 @@
 SpinningOsc3 ipcSpinner => TriOsc ipcOsc => TaskSonification.rel_out;
 2 => ipcOsc.sync; // FM
 
+Step constOneStep;
+1 => constOneStep.next;
 
-Step spinnerBaseFreqStep => Envelope spinnerBaseFreqEnv;
-1 => spinnerBaseFreqStep.next;
-50::ms => spinnerBaseFreqEnv.duration;
+constOneStep => Envelope spinnerBaseFreqEnv;
+10::ms => spinnerBaseFreqEnv.duration;
+constOneStep => Envelope randomGainEnv;
+10::ms => randomGainEnv.duration;
 
 fun void refreshSpinnerFrequency()
 {
@@ -42,9 +45,19 @@ fun void sonifyIPC()
             {
                 frequency => spinnerBaseFreqEnv.target;
                 // ipcSpinner.baseFreq;
-                <<< "IPC:", IPC >>>;
+                // <<< "IPC:", IPC >>>;
             }
         }
+    }
+}
+
+fun void refreshRandomGain()
+{
+    randomGainEnv => blackhole;
+    while(true)
+    {
+        randomGainEnv.last() => ipcSpinner.randomGain;
+        1::samp => now;
     }
 }
 
@@ -57,15 +70,16 @@ fun void sonifyL1ICacheMisses()
 
     1 => ipcSpinner.randomGain;
 
+    spork ~ refreshRandomGain();
+
     while(true)
     {
         oscIn => now;
         while(oscIn.recv(oscMsg) != 0)
         {
             oscMsg.getFloat(0) => float misses;
-            misses * 10000 => float randomGain;
-            // <<< "randomGain:", randomGain >>>;
-            randomGain => ipcSpinner.randomGain;
+            // <<< "I$-Misses per Instruction:", misses * 100, "%" >>>;
+            misses * 5000 => randomGainEnv.target;
         }
     }
 }

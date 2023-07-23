@@ -10,7 +10,7 @@ SndBuf spring => LPF lpf => Envelope volumeEnv => TaskSonification.rel_out;
 OscIn oscIn;
 OscMsg oscMsg;
 
-OscAddress.PORT() => oscIn.port;
+OscAddress.PORT => oscIn.port;
 oscIn.addAddress("/branches");
 
 Step constOne => Envelope lpfFreqEnv => blackhole;

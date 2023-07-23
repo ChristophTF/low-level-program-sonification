@@ -25,7 +25,7 @@ fun void sonifySyscalls(string address, float frequency)
     OscIn oscIn;
     OscMsg oscMsg;
 
-    OscAddress.PORT() => oscIn.port;
+    OscAddress.PORT => oscIn.port;
     oscIn.addAddress(address);
 
     0 => int index;

@@ -12,7 +12,7 @@ fun void sonifyCacheMisses(string address, float frequency)
     OscIn oscIn;
     OscMsg oscMsg;
 
-    OscAddress.PORT() => oscIn.port;
+    OscAddress.PORT => oscIn.port;
     oscIn.addAddress(address);
 
     while(true)
@@ -47,7 +47,7 @@ fun void sonifyIPC()
 {
     OscIn oscIn;
     OscMsg oscMsg;
-    OscAddress.PORT() => oscIn.port;
+    OscAddress.PORT => oscIn.port;
     oscIn.addAddress("/IPC");
 
     spork ~ refreshSpinnerFrequency();
@@ -78,7 +78,7 @@ fun void sonifyL1ICacheMisses()
 {
     OscIn oscIn;
     OscMsg oscMsg;
-    OscAddress.PORT() => oscIn.port;
+    OscAddress.PORT => oscIn.port;
     oscIn.addAddress("/cache/L1I/misses");
 
     1 => ipcSpinner.randomGain;

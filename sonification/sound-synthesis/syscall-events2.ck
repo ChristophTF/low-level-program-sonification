@@ -7,7 +7,7 @@ fun void sonifyIoSyscalls(string address, float frequency)
     OscIn oscIn;
     OscMsg oscMsg;
 
-    OscAddress.PORT() => oscIn.port;
+    OscAddress.PORT => oscIn.port;
     oscIn.addAddress(address);
 
     while(true)

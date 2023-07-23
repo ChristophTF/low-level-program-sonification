@@ -1,3 +1,8 @@
+public class OscAddress
+{
+    static int PORT;
+}
+
 fun int parse_port(string str)
 {
     Std.atoi(str) => int port;
@@ -10,15 +15,4 @@ fun int parse_port(string str)
     return port;
 }
 
-public class OscAddress
-{
-    static int __port;
-    fun static int PORT()
-    {
-        if (__port == 0)
-        {
-            Std.getenv("OSC_PORT") => parse_port => __port;
-        }
-        return __port;
-    }
-}
+Std.getenv("OSC_PORT") => parse_port => OscAddress.PORT;

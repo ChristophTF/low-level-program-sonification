@@ -19,7 +19,7 @@ fun void sonifyTaskClock()
 {
     OscIn oscIn;
     OscMsg oscMsg;
-    OscAddress.PORT() => oscIn.port;
+    OscAddress.PORT => oscIn.port;
     oscIn.addAddress("/task-clock");
 
     while(true)

@@ -37,17 +37,12 @@ while(true)
         oscMsg.getFloat(0) => float branches;
         oscMsg.getFloat(1) => float branch_misses;
 
-        branch_misses / branches => float miss_rate;
-
-        if (branches == 0)
+        if (branches != 0)
         {
-            0 => miss_rate;
-        }
-        else if (branch_misses == branch_misses)
-        {
+            branch_misses / branches => float miss_rate;
             miss_rate * 2000 => lpfFreqEnv.target;
             miss_rate * 5 => volumeEnv.target;
-            <<< "Branch misses:", (miss_rate * 100), "%" >>>;
+            // <<< "Branch misses:", (miss_rate * 100), "%" >>>;
         }
     }
 }

@@ -38,7 +38,7 @@ fun void sonifySyscalls(string address, float frequency)
         {
             oscMsg.getInt(0) => int count;
             oscMsg.getInt(1) => int bytes;
-            <<< address, count, "bytes:", bytes >>>;
+            // <<< address, count, "bytes:", bytes >>>;
 
             Math.sqrt(count) => env[index].gain;
             spork ~ hitADSR(env[index], (bytes / count / 8192)::samp + 1::samp);

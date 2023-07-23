@@ -1,17 +1,10 @@
-UGen out => dac;
-UGen rel_out => Envelope volume_bridge => out;
-5::ms => volume_bridge.duration;
-0.1 => out.gain;
-
-SpinningOsc3 ipcSpinner => TriOsc ipcOsc => rel_out;
+SpinningOsc3 ipcSpinner => TriOsc ipcOsc => TaskSonification.rel_out;
 2 => ipcOsc.sync; // FM
-
-
 
 
 fun void sonifyCacheMisses(string address, float frequency)
 {
-    SqrOsc osc => Envelope env => rel_out;
+    SqrOsc osc => Envelope env => TaskSonification.rel_out;
     10::ms => env.duration;
     2 => osc.gain;
     frequency => osc.freq;
@@ -31,25 +24,6 @@ fun void sonifyCacheMisses(string address, float frequency)
             oscMsg.getFloat(0) => float intensity;
             // <<< address, "Intensity:", intensity >>>;
             intensity => env.target;
-        }
-    }
-}
-
-fun void sonifyTaskClock()
-{
-    OscIn oscIn;
-    OscMsg oscMsg;
-    OscAddress.PORT() => oscIn.port;
-    oscIn.addAddress("/task-clock");
-
-    while(true)
-    {
-        oscIn => now;
-        while(oscIn.recv(oscMsg) != 0)
-        {
-            oscMsg.getFloat(0) => float utilization;
-            // <<< "Utilization:", utilization >>>;
-            utilization => volume_bridge.target;
         }
     }
 }
@@ -94,7 +68,7 @@ fun void sonifyIPC()
             {
                 frequency => spinnerBaseFreqEnv.target;
                 // ipcSpinner.baseFreq;
-                <<< "IPC:", IPC, "frequency: ", frequency >>>;
+                <<< "IPC:", IPC >>>;
             }
         }
     }
@@ -115,7 +89,7 @@ fun void sonifyL1ICacheMisses()
         while(oscIn.recv(oscMsg) != 0)
         {
             oscMsg.getFloat(0) => float misses;
-            misses * 3000 => float randomGain;
+            misses * 10000 => float randomGain;
             // <<< "randomGain:", randomGain >>>;
             randomGain => ipcSpinner.randomGain;
         }
@@ -127,7 +101,6 @@ spork ~ sonifyCacheMisses("/cache/L3/misses", Std.mtof(48));
 spork ~ sonifyCacheMisses("/cache/L2/misses", Std.mtof(52));
 spork ~ sonifyCacheMisses("/cache/L1D/misses", Std.mtof(55));
 
-spork ~ sonifyTaskClock();
 spork ~ sonifyIPC();
 spork ~ sonifyL1ICacheMisses();
 

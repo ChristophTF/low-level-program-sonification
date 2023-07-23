@@ -21,19 +21,8 @@ public:
     }
 };
 
-static void signal_handler(int sig)
-{
-    if(sig == SIGSTOP)
-    {
-        pthread_exit(nullptr);
-    }
-}
-
 static void do_linear(std::span<volatile uint8_t> mem)
 {
-
-    //signal(SIGSTOP, signal_handler);
-
     for(;;)
     {
         for (size_t i = 0; i < mem.size(); i++)

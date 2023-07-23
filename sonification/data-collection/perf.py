@@ -42,7 +42,11 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
     if len(pids) == 0:
         return
 
-    cmdline = f'perf stat --no-group --metric-no-group -e {(",".join(events))} -I {interval_ms} -x\\; --pid {",".join([str(p) for p in pids])}'
+    P = subprocess.run(["pid-children-transitive/cmake-build-release/pid_children_transitive", ",".join([str(p) for p in pids])], capture_output=True, text=True)
+    child_pids = P.stdout.strip('\n')
+    events_str = ",".join(events)
+
+    cmdline = f'perf stat --no-group --metric-no-group -e {events_str} -I {interval_ms} -x\\; --pid {child_pids}'
     # LANG=en_US is needed for having dots as the decimal separator
     with subprocess.Popen(cmdline, shell=True, stderr=subprocess.PIPE, pipesize=1048576, text=True, env={ "LANG": "en_US"}) as p:
         eventdata = [{ 't': [], 'density': [], 'delta_t': [] } for _ in events]

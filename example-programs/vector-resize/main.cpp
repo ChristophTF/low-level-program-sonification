@@ -8,7 +8,7 @@ using namespace std;
 #define OPTIMIZED_READ 1
 
 #if CUSTOM_SONIFICATION
-#include <osc.h>
+#include "osc.h"
 #else
 #define SEND_EVENT(...)
 #endif

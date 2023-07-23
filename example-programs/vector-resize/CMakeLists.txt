@@ -3,4 +3,4 @@ project(vector_resize)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(vector_resize main.cpp)
+add_executable(vector_resize main.cpp osc.h)

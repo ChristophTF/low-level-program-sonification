@@ -26,7 +26,7 @@ def plot_counter_data(ax, data, name):
 
 TASK_CLOCK = "task-clock:uD"
 CYCLES = "cycles:u"
-INSTRUCTIONS = "instructions:uD"
+INSTRUCTIONS = "instructions:u"
 L1I_CACHE_MISSES = "L1-icache-load-misses:u"
 
 L1D_CACHE_MISSES = "L1-dcache-load-misses:u"
@@ -121,8 +121,6 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
 
                 if not (math.isnan(branches) or math.isnan(branch_misses)):
                     client.send_message("/branches", [branches, branch_misses])
-                elif utilization == 0:
-                    client.send_message("/branches", [0, 0])
 
                 j += 1
                 if j == granularity:

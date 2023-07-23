@@ -26,7 +26,7 @@ def plot_counter_data(ax, data, name):
 
 TASK_CLOCK = "task-clock:uD"
 CYCLES = "cycles:u"
-INSTRUCTIONS = "instructions:u"
+INSTRUCTIONS = "instructions:uD"
 L1I_CACHE_MISSES = "L1-icache-load-misses:u"
 
 L1D_CACHE_MISSES = "L1-dcache-load-misses:u"
@@ -111,8 +111,9 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
                     client.send_message("/IPC", [cycles, instructions])
 
                 for osc_name, event_name in [("L1I", L1I_CACHE_MISSES), ("L1D", L1D_CACHE_MISSES), ("L2", L2_CACHE_MISSES), ("L3", L3_CACHE_MISSES)]:
-                    misses_rel = 0 if utilization == 0 else eventdata[event_name]['density'][-1]/(utilization * 4000000000) # TODO: Figure a way to get instructions back here stable
+                    misses_rel = math.nan if instructions == 0 else eventdata[event_name]['density'][-1]/instructions
                     if not math.isnan(misses_rel):
+                        misses_rel = min(misses_rel, 0.3)  # Clean data from sampling-related outliers
                         client.send_message(f"/cache/{osc_name}/misses", misses_rel)
 
                 branches = eventdata[BRANCHES]['density'][-1]

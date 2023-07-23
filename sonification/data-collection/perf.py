@@ -24,19 +24,35 @@ def plot_counter_data(ax, data, name):
     ax.set_title(name)
 
 
+TASK_CLOCK = "task-clock:uD"
+CYCLES = "cycles:u"
+INSTRUCTIONS = "instructions:u"
+L1I_CACHE_MISSES = "L1-icache-load-misses:u"
+
+L1D_CACHE_MISSES = "L1-dcache-load-misses:u"
+L2_CACHE_MISSES = "L2_RQSTS.DEMAND_DATA_RD_MISS:u" #"MEM_LOAD_UOPS_RETIRED.L2_MISS:u"
+L3_CACHE_MISSES = "LLC-load-misses:u" #"MEM_LOAD_UOPS_RETIRED.L3_MISS:u"
+
+FAULTS = "faults:D"
+MAJOR_FAULTS = "major-faults:D"
+
+BRANCHES = "branches:u"
+BRANCH_MISSES = "branch-misses:u"
 
 
 events = [
-    "task-clock:u",
-    "cycles:uD",
-    "instructions:uD",
-    "L1-dcache-load-misses:u",
-    "L2_RQSTS.DEMAND_DATA_RD_MISS:u", #"MEM_LOAD_UOPS_RETIRED.L2_MISS:u",
-    "LLC-load-misses:u", #"MEM_LOAD_UOPS_RETIRED.L3_MISS:u"
-    "faults",
-    "major-faults",
-    "L1-icache-load-misses"
+    TASK_CLOCK,
+    [INSTRUCTIONS, CYCLES],
+    L1I_CACHE_MISSES,
+    L1D_CACHE_MISSES,
+    L2_CACHE_MISSES,
+    L3_CACHE_MISSES,
+    FAULTS,
+    MAJOR_FAULTS,
+    [BRANCHES, BRANCH_MISSES]
 ]
+
+events_flat = [event for group in events for event in ([group] if type(group) is str else group)]
 
 def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: int):
     if len(pids) == 0:
@@ -44,24 +60,25 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
 
     P = subprocess.run(["pid-children-transitive/cmake-build-release/pid_children_transitive", ",".join([str(p) for p in pids])], capture_output=True, text=True)
     child_pids = P.stdout.strip('\n')
-    events_str = ",".join(events)
+
+    events_in_groups = [group if type(group) is str else f'{{{",".join(group)}}}' for group in events]
+    events_str = ",".join(events_in_groups)
 
     cmdline = f'perf stat --no-group --metric-no-group -e {events_str} -I {interval_ms} -x\\; --pid {child_pids}'
     # LANG=en_US is needed for having dots as the decimal separator
     with subprocess.Popen(cmdline, shell=True, stderr=subprocess.PIPE, pipesize=1048576, text=True, env={ "LANG": "en_US"}) as p:
-        eventdata = [{ 't': [], 'density': [], 'delta_t': [] } for _ in events]
+        eventdata = { name: { 't': [], 'density': [], 'delta_t': [] } for name in events_flat}
 
         granularity = -1
         j = 0
         k = 0
 
         if granularity > 0:
-            fig, axes = plt.subplots(len(events), 1)
+            fig, axes = plt.subplots(len(events_flat), 1)
 
         try:
             while not p.stderr.closed:
-                index = 0
-                for lines in eventdata:
+                for event_name, lines in eventdata.items():
                     line = p.stderr.readline()
                     if len(line) == 0:
                         raise EOFError()
@@ -72,8 +89,7 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
 
                     count = float(columns[1]) if columns[1] != "<not counted>" else 0
                     unit = columns[2]
-                    eventname = columns[3]
-                    if not events[index].startswith(eventname):
+                    if not event_name.startswith(columns[3]):
                         raise ValueError()
                     multiplex_percent = float(columns[5])
 
@@ -81,34 +97,42 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
                     lines['delta_t'].append(delta_t)
                     count_density = count / delta_t if multiplex_percent != 0 else math.nan
                     lines['density'].append(count_density)
-                    index += 1
 
-                utilization = eventdata[0]['density'][-1] / 1000
-                cycles = eventdata[1]['density'][-1]
-                instructions = eventdata[2]['density'][-1]
+                utilization = eventdata[TASK_CLOCK]['density'][-1] / 1000
+                cycles = eventdata[CYCLES]['density'][-1]
+                instructions = eventdata[INSTRUCTIONS]['density'][-1]
 
                 client.send_message("/task-clock", utilization)
 
                 if not (math.isnan(cycles) or math.isnan(instructions)):
                     client.send_message("/IPC", [cycles, instructions])
 
-                for name, eventindex in [("L1D", 3), ("L2", 4), ("L3", 5), ("L1I", 8)]:
-                    misses_rel = 0 if instructions == 0 else eventdata[eventindex]['density'][-1]/instructions
-                    client.send_message(f"/cache/{name}/misses", misses_rel)
+                for osc_name, event_name in [("L1I", L1I_CACHE_MISSES), ("L1D", L1D_CACHE_MISSES), ("L2", L2_CACHE_MISSES), ("L3", L3_CACHE_MISSES)]:
+                    misses_rel = 0 if utilization == 0 else eventdata[event_name]['density'][-1]/(utilization * 4000000000) # TODO: Figure a way to get instructions back here stable
+                    if not math.isnan(misses_rel):
+                        client.send_message(f"/cache/{osc_name}/misses", misses_rel)
+
+                branches = eventdata[BRANCHES]['density'][-1]
+                branch_misses = eventdata[BRANCH_MISSES]['density'][-1]
+
+                if not (math.isnan(branches) or math.isnan(branch_misses)):
+                    client.send_message("/branches", [branches, branch_misses])
+                elif utilization == 0:
+                    client.send_message("/branches", [0, 0])
 
                 j += 1
                 if j == granularity:
                     j = 0
-                    for ax, lines, name in zip(axes.flat, eventdata, events):
+                    for ax, (event_name, lines) in zip(axes.flat, eventdata.items()):
                         ax.clear()
-                        plot_counter_data(ax, lines, name)
+                        plot_counter_data(ax, lines, event_name)
                     plt.pause(0.001)
 
         except EOFError:
             pass
 
         # Ensure chuck gets quiet again
-        for name, eventindex in [("L1D", 3), ("L2", 4), ("L3", 5), ("L1I", 8)]:
-            client.send_message(f"/cache/{name}/misses", 0)
+        for osc_name in ["L1I", "L1D", "L2", "L3"]:
+            client.send_message(f"/cache/{osc_name}/misses", 0)
         client.send_message("/task-clock", 0)
         client.send_message("/IPC", [0, 0])

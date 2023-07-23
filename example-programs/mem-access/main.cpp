@@ -1,11 +1,6 @@
 #include <iostream>
-#include <cstring>
 #include <span>
-#include <thread>
-#include <csignal>
-#include <functional>
 #include <bit>
-#include <utility>
 
 class Random
 {
@@ -34,12 +29,13 @@ static void do_linear(std::span<volatile uint8_t> mem)
 
 static void do_random(std::span<volatile uint8_t> mem)
 {
-    size_t mask = std::bit_ceil(mem.size()) - 1;
+    size_t mask = std::bit_floor(mem.size()) - 1;
 
     Random j;
+    size_t i = 0;
     for(;;)
     {
-        size_t i = ++j & mask;
+        i += ++j & mask;
         if (i > mem.size())
             i -= mem.size();
 
@@ -47,73 +43,32 @@ static void do_random(std::span<volatile uint8_t> mem)
     }
 }
 
-class CancelableThread
-{
-    static void* pthread_func(void* arg)
-    {
-        int state = PTHREAD_CANCEL_ASYNCHRONOUS;
-        pthread_setcanceltype(state, &state);
-        (*(std::function<void(void)>*)arg)();
-        return (void*)nullptr;
-    }
-
-    std::function<void(void)> thread_func;
-    pthread_t t;
-
-public:
-    explicit CancelableThread(std::function<void(void)> thread_func) : thread_func(std::move(thread_func))
-    {
-        int res = pthread_create(&t, nullptr, pthread_func, &this->thread_func);
-        if (res != 0)
-        {
-            fprintf(stderr, "pthread_create: Error %d\n", res);
-            exit(3);
-        }
-    }
-
-    ~CancelableThread()
-    {
-        int res = pthread_cancel(t);
-        if (res != 0)
-        {
-            fprintf(stderr, "pthread_cancel: Error %d\n", res);
-            exit(4);
-        }
-    }
-};
-
 int main(int argc, char **argv)
 {
-    for(;;)
+    if (argc < 3)
     {
-        std::string type;
-        size_t size;
-        std::cin >> type >> size;
-
-        std::unique_ptr<volatile uint8_t[]> m(new uint8_t[size]{});
-
-        void (*fun)(std::span<volatile uint8_t> span);
-
-        if(type == "linear")
-        {
-            fun = do_linear;
-        }
-        else if(type == "random")
-        {
-            fun = do_random;
-        }
-        else
-        {
-            fprintf(stderr, "Unknown operation type \"%s\". Available options are:\nlinear\nrandom\n\n", type.c_str());
-            exit(1);
-        }
-
-        std::span<volatile uint8_t> mem(m.get(), size);
-        std::function<void(void)> lambda = [fun, mem](){ fun(mem); };
-
-        {
-            CancelableThread t(lambda);
-            sleep(1);
-        }
+        fprintf(stderr, "Usage: %s <linear|random> <size>\n", argv[0]);
+        exit(1);
     }
+
+    std::string_view type = argv[1];
+    size_t size = atoll(argv[2]);
+
+    void (*fun)(std::span<volatile uint8_t> span);
+    if(type == "linear")
+    {
+        fun = do_linear;
+    }
+    else if(type == "random")
+    {
+        fun = do_random;
+    }
+    else
+    {
+        fprintf(stderr, "Unknown operation type \"%s\". Available options are:\nlinear\nrandom\n\n", argv[1]);
+        exit(1);
+    }
+
+    std::span<volatile uint8_t> mem(new uint8_t[size]{}, size);
+    fun(mem);
 }

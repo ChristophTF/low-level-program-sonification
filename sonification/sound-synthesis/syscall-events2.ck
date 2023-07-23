@@ -1,6 +1,6 @@
 fun void sonifyIoSyscalls(string address, float frequency)
 {
-    SinOsc osc => ADSR env => Gain gain => dac;
+    SinOsc osc => ADSR env => Gain gain => TaskSonification.out;
     frequency => osc.freq;
     (1::ms, 5::ms, 0, 1::ms) => env.set;
 

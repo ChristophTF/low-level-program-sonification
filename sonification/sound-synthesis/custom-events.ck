@@ -1,9 +1,9 @@
 fun void waitForMessage(string address, float freq)
 {
-    SqrOsc osc => ADSR env => dac;
+    SqrOsc osc => ADSR env => TaskSonification.out;
     1 => osc.gain;
     freq => osc.freq;
-    (1::ms, 10::ms, 0, 1::ms) => env.set;
+    (1::ms, 20::ms, 0, 1::ms) => env.set;
 
     OscIn oscIn;
     OscMsg oscMsg;

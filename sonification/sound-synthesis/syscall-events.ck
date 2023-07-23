@@ -9,7 +9,7 @@ fun void sonifySyscalls(string address, float frequency)
 {
     SinOsc osc;
     0.5 => osc.gain;
-    UGen out => BPF hpf => Dyno limiter => dac;
+    UGen out => BPF hpf => Dyno limiter => TaskSonification.out;
     frequency => hpf.freq;
     4 => hpf.Q;
 

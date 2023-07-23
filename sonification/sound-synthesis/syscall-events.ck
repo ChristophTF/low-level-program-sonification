@@ -41,11 +41,11 @@ fun void sonifySyscalls(string address, float frequency)
             <<< address, count, "bytes:", bytes >>>;
 
             Math.sqrt(count) => env[index].gain;
-            spork ~ hitADSR(env[index], (bytes / count / 100)::samp + 1::samp);
+            spork ~ hitADSR(env[index], (bytes / count / 8192)::samp + 1::samp);
             (index + 1) % env.size() => index;
         }
     }
 }
 
-spork ~ sonifySyscalls("/io/syscalls/read", Std.mtof(72));
-sonifySyscalls("/io/syscalls/write", Std.mtof(60));
+spork ~ sonifySyscalls("/io/syscalls/read", Std.mtof(60));
+sonifySyscalls("/io/syscalls/write", Std.mtof(53));

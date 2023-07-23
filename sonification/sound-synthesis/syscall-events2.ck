@@ -20,7 +20,7 @@ fun void sonifyIoSyscalls(string address, float frequency)
             if (syscalls > 0)
             {
                 float loudness;
-                100 => int MAX_SYSCALLS;
+                10000 => int MAX_SYSCALLS;
                 if (syscalls > MAX_SYSCALLS)
                 {
                     1 => loudness;
@@ -38,5 +38,5 @@ fun void sonifyIoSyscalls(string address, float frequency)
     }
 }
 
-spork ~ sonifyIoSyscalls("/io/syscalls/read", 4400);
-sonifyIoSyscalls("/io/syscalls/write", 3200);
+spork ~ sonifyIoSyscalls("/io/syscalls/read", Std.mtof(109) /*4400*/);
+sonifyIoSyscalls("/io/syscalls/write", Std.mtof(102) /*3200*/);

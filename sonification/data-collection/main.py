@@ -3,20 +3,7 @@ import threading
 from pythonosc import udp_client
 import subprocess
 import os
-
-
-def run_program():
-    input = open("/home/christoph/Uni/HPI/WiSe2223/ACP2/4-tree/ipomc10/large.in", "r")
-    output = open("/dev/null", "w")
-    p2 = subprocess.Popen("/home/christoph/Uni/HPI/WiSe2223/ACP2/4-tree/ipomc10/cmake-build-release/ipomc10", shell=False,
-                          stdin=input, stdout=output)
-    pid = p2.pid
-
-    def wait_for_exit():
-        p2.wait()
-
-    threading.Thread(target=wait_for_exit).start()
-    return pid
+import sys
 
 
 def get_pids_of_program(name: str):
@@ -25,14 +12,12 @@ def get_pids_of_program(name: str):
             len(pstr) > 0]
 
 
-#pids = get_pids_of_program("firefox")
-#pids = [22895]
-#pids = get_pids_of_program("spotify")
-pids = [51542]
-#pids = get_pids_of_program("nautilus")
+program_input = sys.argv[1] if len(sys.argv) > 1 else input()
+try:
+    pids = [int(s) for s in program_input.split(',')]
+except ValueError:
+    pids = get_pids_of_program(program_input)
 
-
-#pids = [run_program()]
 
 OSC_SERVER_ADDRESS = os.getenv("OSC_SERVER_ADDRESS") or "localhost"
 OSC_SERVER_PORT = int(os.getenv("OSC_SERVER_PORT") or 9000)

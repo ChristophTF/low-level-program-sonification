@@ -2,32 +2,6 @@ SpinningOsc3 ipcSpinner => TriOsc ipcOsc => TaskSonification.rel_out;
 2 => ipcOsc.sync; // FM
 
 
-fun void sonifyCacheMisses(string address, float frequency)
-{
-    SqrOsc osc => Envelope env => TaskSonification.rel_out;
-    10::ms => env.duration;
-    2 => osc.gain;
-    frequency => osc.freq;
-
-    OscIn oscIn;
-    OscMsg oscMsg;
-
-    OscAddress.PORT => oscIn.port;
-    oscIn.addAddress(address);
-
-    while(true)
-    {
-        oscIn => now;
-
-        while(oscIn.recv(oscMsg) != 0)
-        {
-            oscMsg.getFloat(0) => float intensity;
-            // <<< address, "Intensity:", intensity >>>;
-            intensity => env.target;
-        }
-    }
-}
-
 Step spinnerBaseFreqStep => Envelope spinnerBaseFreqEnv;
 1 => spinnerBaseFreqStep.next;
 50::ms => spinnerBaseFreqEnv.duration;
@@ -95,11 +69,6 @@ fun void sonifyL1ICacheMisses()
         }
     }
 }
-
-
-spork ~ sonifyCacheMisses("/cache/L3/misses", Std.mtof(48));
-spork ~ sonifyCacheMisses("/cache/L2/misses", Std.mtof(52));
-spork ~ sonifyCacheMisses("/cache/L1D/misses", Std.mtof(55));
 
 spork ~ sonifyIPC();
 spork ~ sonifyL1ICacheMisses();

@@ -64,9 +64,9 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
     events_in_groups = [group if type(group) is str else f'{{{",".join(group)}}}' for group in events]
     events_str = ",".join(events_in_groups)
 
-    cmdline = f'perf stat --no-group --metric-no-group -e {events_str} -I {interval_ms} -x\\; --pid {child_pids}'
+    cmdline = f'perf stat -o /dev/stdout -e {events_str} -I {interval_ms} -x\\; --pid {child_pids}'
     # LANG=en_US is needed for having dots as the decimal separator
-    with subprocess.Popen(cmdline, shell=True, stderr=subprocess.PIPE, pipesize=1048576, text=True, env={ "LANG": "en_US"}) as p:
+    with subprocess.Popen(cmdline, shell=True, stdout=subprocess.PIPE, pipesize=1048576, text=True, env={ "LANG": "en_US"}) as p:
         eventdata = { name: { 't': [], 'density': [], 'delta_t': [] } for name in events_flat}
 
         granularity = -1
@@ -76,10 +76,13 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
         if granularity > 0:
             fig, axes = plt.subplots(len(events_flat), 1)
 
+        firstline = p.stdout.readline()
+        secondline = p.stdout.readline()
+
         try:
-            while not p.stderr.closed:
+            while not p.stdout.closed:
                 for event_name, lines in eventdata.items():
-                    line = p.stderr.readline()
+                    line = p.stdout.readline()
                     if len(line) == 0:
                         raise EOFError()
                     columns = line.strip().split(";")

@@ -18,6 +18,8 @@ public:
 
 static void do_linear(std::span<volatile uint8_t> mem)
 {
+    // Linear access through an array: Easily predictable -> no cache misses
+    
     for(;;)
     {
         for (size_t i = 0; i < mem.size(); i++)
@@ -29,6 +31,8 @@ static void do_linear(std::span<volatile uint8_t> mem)
 
 static void do_random(std::span<volatile uint8_t> mem)
 {
+    // Random access through an array: Not predictable -> Cache misses as soon as array gets too large to fit completely into the cache
+
     size_t mask = std::bit_floor(mem.size()) - 1;
 
     Random j;

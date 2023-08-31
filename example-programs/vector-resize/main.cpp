@@ -4,7 +4,8 @@
 
 using namespace std;
 
-#define CUSTOM_SONIFICATION 0
+// Add custom event tones for proving the hypothesis:
+#define CUSTOM_SONIFICATION 1
 #define OPTIMIZED_READ 1
 
 #if CUSTOM_SONIFICATION
@@ -37,7 +38,8 @@ int main()
 
     size_t n = read_int();
 
-    //data.reserve(n);
+    // Tell the vector how large our data array will have to be...
+    data.reserve(n);
 
     for(size_t i = 0; i < n; i++)
     {
@@ -46,16 +48,24 @@ int main()
         bool needs_increase = data.size() == data.capacity();
 
         if (needs_increase)
-        {
             SEND_EVENT("/custom1");
-        }
+
+        // Dynamically sized array
+        // Once it is full, three things happen:
+        // 1. Allocation of larger buffer
+        // 2. Copying of all existing data from the old buffer into the newly allocated
+        // 3. Deallocation of the previous buffer
+
+        // Can we hear it?
+
+        // Yes!
+
+        // Can we improve on it?
 
         data.push_back(a);
 
         if (needs_increase)
-        {
             SEND_EVENT("/custom2");
-        }
     }
 
     uint64_t sum = std::accumulate(data.begin(), data.end(), 0llu);

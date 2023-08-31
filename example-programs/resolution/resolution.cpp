@@ -133,6 +133,10 @@ static uint64_t f_mod(uint64_t x, uint64_t c, uint64_t n)
     return res % n;
 }
 
+#define MANUALLY_OPTIMIZED 1
+
+// I copied the standard library implementation here:
+
 static uint64_t custom_gcd(uint64_t m, uint64_t n)
 {
     if (m == 0)
@@ -148,20 +152,27 @@ static uint64_t custom_gcd(uint64_t m, uint64_t n)
 
     while (true)
 	{
-#if MANUALLY_OPTIMIZED
-        uint64_t tmp;
-        asm("cmp %1, %0\n"
-            "mov %0, %2\n"
-            "cmova %1, %0\n"
-            "cmova %2, %1"
-            : "+r" (m), "+r"(n), "=&r" (tmp) :: "cc");
-#else
+#if !MANUALLY_OPTIMIZED
+        // This branch is the offender.
+        // The CPU cannot reliably predict if this branch is going to be taken.
+        // Branch misses slow it down significantly.
         if (m > n)
         {
             uint64_t tmp = m;
             m = n;
             n = tmp;
         }
+#else
+        // After replacing the if-branch with a comparison and "conditional moves",
+        // which are always executed but silently discard their effect if the comparison is false,
+        // we could hope for a performance improvement.
+
+        uint64_t tmp;
+        asm("cmp %1, %0\n"
+            "mov %0, %2\n"
+            "cmova %1, %0\n"
+            "cmova %2, %1"
+            : "+r" (m), "+r"(n), "=&r" (tmp) :: "cc");
 #endif
 
 	    n -= m;
@@ -193,6 +204,7 @@ static uint64_t get_divisor(uint64_t n, uint64_t x_0, uint64_t c)
         else
             x_s_t = n - x_t + x_s;
 
+        // According to detailed perf output, the standard library function for calculating the greatest common denominator is the host of the branch misses.
         uint64_t candidate = custom_gcd(n, x_s_t);
 
         if(candidate > 1)
@@ -262,6 +274,13 @@ static void solve(uint64_t n)
     cout << '\n';
 }
 
+// This is an assignment from last semester's competitive programming course.
+// The task was to reduce arbitrary numbers into their prime factors.
+// This program implements a strategy introduced in the respective lecture back then.
+// In order to have the fastest submission, I pulled every trick I knew of.
+
+// Applying my low-level sonification tool in retrospective, I could easily diagnose another bottleneck...
+
 int main()
 {
     iostream::sync_with_stdio(false);
@@ -277,3 +296,7 @@ int main()
         solve(n_i);
     }
 }
+
+
+// 3.0 s -> 2.5 s
+// This is an improvement of 17%!

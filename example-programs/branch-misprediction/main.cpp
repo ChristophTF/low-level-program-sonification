@@ -12,6 +12,8 @@ static std::pair<uint32_t, uint32_t> count_branchless(std::span<const unsigned i
     {
         n = numbers[n & mask];
 
+        // Branchless alternative implementation
+
         tk += 1 + (uint64_t)(0u - (n % 2));
     }
     return {tk >> 32, tk & UINT32_MAX};
@@ -25,6 +27,10 @@ static std::pair<uint32_t, uint32_t> count_branching(std::span<const unsigned in
     for (unsigned int n : numbers)
     {
         n = numbers[n & mask];
+
+        // Data dependent branch that is impossible to predict
+        // -> If "numbers" is a very small array and fits into L1 cache, CPU will have the data fast and won't need to predict
+        // -> Otherwise, the CPU will attempt to predict, fail in 50% of the cases and experience a significant slowdown
 
         if (n % 2)
         {

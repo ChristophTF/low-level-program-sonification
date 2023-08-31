@@ -13,11 +13,13 @@ int main(int argc, char **argv)
 	
 	unsigned int res = rand();
 	
-	for(size_t i = 0; i < iterations * 100; i++)
+	// Fast loop: Simple arithmetic instructions
+	for(size_t i = 0; i < iterations * 20; i++)
 	{
 		res = res * 3 + 27;
 	}
 
+	// Slower loop: Call into standard library
 	for(size_t i = 0; i < iterations; i++)
 	{
 		res += rand();
@@ -26,4 +28,3 @@ int main(int argc, char **argv)
 	printf("%u\n", res);
 }
 
-// Christoph was here!

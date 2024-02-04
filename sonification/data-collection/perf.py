@@ -58,7 +58,7 @@ def record_perf(client: udp_client.SimpleUDPClient, pids: [int], interval_ms: in
     if len(pids) == 0:
         return
 
-    P = subprocess.run(["pid-children-transitive/cmake-build-release/pid_children_transitive", ",".join([str(p) for p in pids])], capture_output=True, text=True)
+    P = subprocess.run(["pid-children-transitive/pid_children_transitive", ",".join([str(p) for p in pids])], capture_output=True, text=True)
     child_pids = P.stdout.strip('\n')
 
     events_in_groups = [group if type(group) is str else f'{{{",".join(group)}}}' for group in events]

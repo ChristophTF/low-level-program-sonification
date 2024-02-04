@@ -7,8 +7,8 @@ def record_procfs_io(client: udp_client.SimpleUDPClient, pids: [int], interval_m
     if len(pids) == 0:
         return
 
-    pid_children_transitive_path = "pid-children-transitive/cmake-build-release/pid_children_transitive"
-    proc_reader_path = "proc-reader/cmake-build-release/proc_reader"
+    pid_children_transitive_path = "pid-children-transitive/pid_children_transitive"
+    proc_reader_path = "proc-reader/proc_reader"
     with subprocess.Popen(f'{pid_children_transitive_path} {(",".join([str(p) for p in pids]))} 100000000 | {proc_reader_path} {interval_ms * 1000 * 1000}', shell=True, stdout=subprocess.PIPE, pipesize=1048576, text=True) as p:
         while not p.stdout.closed:
             line = p.stdout.readline()

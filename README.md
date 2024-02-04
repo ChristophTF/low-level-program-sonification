@@ -81,10 +81,10 @@ apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
 
 ### Getting Started
 
-1. Build the procfs reader:
+1. Build the data collection tool:
 ```bash
-$ cd ./sonification/data-collection/pid-children-transitive
-$ mkdir cmake-build-release && cd cmake-build-release
+$ cd ./sonification/data-collection
+$ mkdir build && cd build
 $ cmake .. -DCMAKE_BUILD_TYPE=Release
 $ make
 ```
@@ -97,7 +97,7 @@ $ ./chuck.sh
 
 3. Start the data collection:
 ```bash
-$ cd ./sonification/data-collection
+$ cd ./sonification/data-collection/build
 $ python3 main.py
 firefox
 ```
